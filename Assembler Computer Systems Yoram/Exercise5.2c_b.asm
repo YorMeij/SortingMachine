@@ -1,7 +1,5 @@
 ; Exercise 5.2c -- 4.2b
 
-; r5 = 3b0
-
 @INCLUDE "lib.std"
 
 @DATA
@@ -13,7 +11,7 @@
 
     @CODE
 
-    DELTA EQU 50
+    DELTA EQU 500 ; Timer increment, 50 is for 100 Hz, 5 is for 1000 Hz.
 
     main :
                 LOAD R5 [GB+CS]
@@ -35,16 +33,20 @@
 
                 BRA lmain
 
-lTmr:
+lTmr: ; Timer interrupt handler
+
+                ; Preserve R0 and R1 (just in case)
                 PUSH R0
                 PUSH R1
+
                 LOAD R0 0
                 LOAD R1 TIMER
-                SUB R0 [R1] ; R0 := −TIMER
-                STOR R0 [R1] ; TIMER := TIMER+R0
+                SUB R0 [GB+TIMER] ; R0 := −TIMER
+                STOR R0 [GB+TIMER] ; TIMER := TIMER+R0
 
                 LOAD R0 DELTA
-                STOR R0 [R1]
+                STOR R0 [GB+TIMER]
+
                 PULL R0
                 PULL R1
 
