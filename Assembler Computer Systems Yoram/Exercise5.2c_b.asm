@@ -26,68 +26,78 @@
               STOR  R0  [R1] ; install TMR ISR
 
               LOAD  R5  IOAREA          ;  R5 := "address of the area with the I/O-registers"
-              BRS   cpCurLED
+              BRS   cpCurLED ; Initialise arrays
 
-              SETI  8
+              SETI  8 ; Set interrupt bit
 
    loop:
               BRA loop            ;  Wait until interrupt occurs
 
    work:
+              ; Set timer to 0
+
               LOAD R0 0
               SUB  R0 [R5+TIMER] ; R0 := −TIMER
               STOR R0 [R5+TIMER] ; TIMER := TIMER+R0
 
+              ; Set timer to delta
+
               LOAD R0 DELTA
               STOR R0 [R5+TIMER]
 
+              ; Use local R0, R1, R4
               PUSH  R0
               PUSH  R1
               PUSH  R4
-              LOAD  R1  [R5+ADCONVS]  ;  Read adconvs
+
+              LOAD  R1  [R5+ADCONVS]  ;  Read adconvs (potmeter)
               AND   R1  %011111111    ;  Mask 8 MSBs out
               MULS  R1  100
-              DIV   R1  255
-              STOR  R1  [GB+LEDON]
+              DIV   R1  255           ;  Clip it to 100
+              STOR  R1  [GB+LEDON]    ;  Write it to ledon[0]
               LOAD  R0  [R5+INPUT]
-              SUB   R0  [GB+BUTTONS]
+              SUB   R0  [GB+BUTTONS]  ; Compare previous and current buttons states
               BLE   lightUp             ;  ensure that btn state changed
               LOAD  R0  [R5+INPUT]
               LOAD  R4  R0
-              AND   R4  %01             ;  do we need to decrease instead of increasing?
-              BNE   decrLED
-              XOR   R0  [GB+BUTTONS]
-              DIV   R0  2
-              BRS   incrCntrs
-              BRA   lightUp
-   decrLED:   XOR   R0  [GB+BUTTONS]
-              DIV   R0  2
-              BRS   decrCntrs
-   lightUp:   BRS   decCurLED
-              BRS   ledOn
-              LOAD  R4  [GB+CNT]
-              ADD   R4  1
-              STOR  R4  [GB+CNT]
-              CMP   R4  9
-              BLE   skipReset
-              LOAD  R4  0
-              STOR  R4  [GB+CNT]
-              BRS   cpCurLED
-   skipReset: LOAD  R4  [R5+INPUT]
-              STOR  R4  [GB+BUTTONS]
+              AND   R4  %01             ; Test rightmost bit of INPUT
+              BNE   decrLED             ; Decrease led
+              XOR   R0  [GB+BUTTONS]    ; Test if buttons' states changed
+              DIV   R0  2               ; Mask out the rightmost bit
+              BRS   incrCntrs           ; Increases LEDON counter instead of decreasing
+              BRA   lightUp             ; Skip decreasing LED
+   decrLED:   XOR   R0  [GB+BUTTONS]    ; Test if buttons' states changed
+              DIV   R0  2               ; Mask out the rightmost bit
+              BRS   decrCntrs           ; Decrease counters
+   lightUp:   BRS   decCurLED           ; Decrease current LED counters
+              BRS   ledOn               ; Toggle LEDs
+              LOAD  R4  [GB+CNT]        ; Load current counter value
+              ADD   R4  1               ; Increment it by 1
+              STOR  R4  [GB+CNT]        ; Store it
+              CMP   R4  9               ; Compare it to 9
+              BLE   skipReset           ; Do not reset if it's less than 9
+              LOAD  R4  0               ; Reset the counter
+              STOR  R4  [GB+CNT]        ; Store it
+              BRS   cpCurLED            ; Update array values
+   skipReset: LOAD  R4  [R5+INPUT]      ; Read input
+              STOR  R4  [GB+BUTTONS]    ; Save it to BUTTONS array
+
+              ; Restore previous reg values
               POP   R4
               POP   R1
               POP   R0
 
-              ; Reenable interrupt bit
-              SETI 8
-              RTE
+              SETI 8  ; Reenable interrupt bit
+              RTE     ; Return from interrupt
 
 ; Increments all the cntrs if necessary
 ; Input: btn state in R0 - except for btn0
-   incrCntrs: PUSH  R0
+   incrCntrs:
+              ; Use local regs
+              PUSH  R0
               PUSH  R1
               PUSH  R2
+
               LOAD  R2  1
    incrCntLp: DVMD  R0  2
               CMP   R1  0
@@ -100,6 +110,8 @@
    skipIncr:  ADD   R2  1
               CMP   R0  0
               BNE   incrCntLp
+
+              ; Restore reg values
               POP   R2
               POP   R1
               POP   R0
