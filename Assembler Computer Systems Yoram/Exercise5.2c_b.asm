@@ -1,158 +1,192 @@
-; Exercise 5.2c -- 4.2b
-
-@INCLUDE "lib.std"
-
 @DATA
-                DATA        DS      8           ; data to be displayed on   (int[6])
-                STATE       DS      1           ; input state               (binary)
-                OUT         DS      1           ; output state              (binary)
-                SUBTRACT    DS      1           ; determine sub/add         (boolean)
+    LEDON      DW   0, 0, 0, 0, 0, 0, 0, 0 ;  delta of the LEDs
+    CURLEDS    DW   0, 0, 0, 0, 0, 0, 0, 0 ;  current delta of the leds
+    BUTTONS    DS   1
+    CNT        DW   0
 
+@CODE
+   IOAREA      EQU  -16                 ;  address of the I/O-Area, modulo 2^18
+   INPUT       EQU    7                 ;  position of the input buttons (relative to IOAREA)
+   OUTPUT      EQU   11                 ;  relative position of the power outputs
+   DIGIT       EQU    9                 ;  relative position of the 7-segment display's digit selector
+   SEGMENT     EQU    8                 ;  relative position of the 7-segment display's segments
+   TIMER       EQU   13                 ;  relative position of timer
+   ADCONVS     EQU    6                 ;  adconvs thing
+   DELTA       EQU   10                 ;  delay in timer steps  --  step for the leds
 
-    @CODE
+  begin:      BRA  start                ;  We start at start
+;
+;      The body of the main program
+;
+   start:
+              ; Interrupt init
+              LOAD  R0 work ; R0 <= "the relative position of routine work"
+              ADD   R0  R5 ; R0 <= "the memory address of routine work"
+              LOAD  R1  16 ; R1 <= "address of the Exception Descriptor for TIMER"
+              STOR  R0  [R1] ; install TMR ISR
 
-    DELTA EQU 500 ; Timer increment, 50 is for 100 Hz, 5 is for 1000 Hz.
+              LOAD  R5  IOAREA          ;  R5 := "address of the area with the I/O-registers"
+              BRS   cpCurLED
 
-    main :
-                LOAD R5 [GB+CS]
-                LOAD R0 lTmr ; R0 <= "the relative position of routine TMR ISR"
-                ADD  R0  R5 ; R0 <= "the memory address of routine TMR ISR"
-                LOAD  R1  16 ; R1 <= "address of the Exception Descriptor for TIMER"
-                STOR  R0  [R1] ; install TMR ISR
+              SETI  8
 
-                LOAD        R1      0           ; data
-                LOAD        R2      0           ; buf
-                LOAD        R3      0           ; idx
+   loop:
+              BRA loop            ;  Wait until interrupt occurs
 
-                SETI 8
+   work:
+              LOAD R0 0
+              SUB  R0 [R5+TIMER] ; R0 := −TIMER
+              STOR R0 [R5+TIMER] ; TIMER := TIMER+R0
 
-    lmain :      ; loop at 1000 hz
-                ;LOAD        R4      1           ;
-                ;PUSH        R4                  ;
-                ;BRS         system.wait;        ;
+              LOAD R0 DELTA
+              STOR R0 [R5+TIMER]
 
-                BRA lmain
+              PUSH  R0
+              PUSH  R1
+              PUSH  R4
+              LOAD  R1  [R5+ADCONVS]  ;  Read adconvs
+              AND   R1  %011111111    ;  Mask 8 MSBs out
+              MULS  R1  100
+              DIV   R1  255
+              STOR  R1  [GB+LEDON]
+              LOAD  R0  [R5+INPUT]
+              SUB   R0  [GB+BUTTONS]
+              BLE   lightUp             ;  ensure that btn state changed
+              LOAD  R0  [R5+INPUT]
+              LOAD  R4  R0
+              AND   R4  %01             ;  do we need to decrease instead of increasing?
+              BNE   decrLED
+              XOR   R0  [GB+BUTTONS]
+              DIV   R0  2
+              BRS   incrCntrs
+              BRA   lightUp
+   decrLED:   XOR   R0  [GB+BUTTONS]
+              DIV   R0  2
+              BRS   decrCntrs
+   lightUp:   BRS   decCurLED
+              BRS   ledOn
+              LOAD  R4  [GB+CNT]
+              ADD   R4  1
+              STOR  R4  [GB+CNT]
+              CMP   R4  9
+              BLE   skipReset
+              LOAD  R4  0
+              STOR  R4  [GB+CNT]
+              BRS   cpCurLED
+   skipReset: LOAD  R4  [R5+INPUT]
+              STOR  R4  [GB+BUTTONS]
+              POP   R4
+              POP   R1
+              POP   R0
 
-lTmr: ; Timer interrupt handler
+              ; Reenable interrupt bit
+              SETI 8
+              RTE
 
-                ; Preserve R0 and R1 (just in case)
-                PUSH R0
-                PUSH R1
+; Increments all the cntrs if necessary
+; Input: btn state in R0 - except for btn0
+   incrCntrs: PUSH  R0
+              PUSH  R1
+              PUSH  R2
+              LOAD  R2  1
+   incrCntLp: DVMD  R0  2
+              CMP   R1  0
+              BEQ   skipIncr
+              ADD   R2  GB
+              LOAD  R1  [R2+LEDON]
+              ADD   R1  10
+              STOR  R1  [R2+LEDON]
+              SUB   R2  GB
+   skipIncr:  ADD   R2  1
+              CMP   R0  0
+              BNE   incrCntLp
+              POP   R2
+              POP   R1
+              POP   R0
+              RTS
 
-                LOAD R0 0
-                LOAD R1 TIMER
-                SUB R0 [GB+TIMER] ; R0 := −TIMER
-                STOR R0 [GB+TIMER] ; TIMER := TIMER+R0
+; Decrements all the cntrs if necessary
+; Input: btn state in R0 - except for btn0
+   decrCntrs: PUSH  R0
+              PUSH  R1
+              PUSH  R2
+              LOAD  R2  1
+   decrCntLp: DVMD  R0  2
+              CMP   R1  0
+              BEQ   skipDecr
+              ADD   R2  GB
+              LOAD  R1  [R2+LEDON]
+              SUB   R1  10
+              STOR  R1  [R2+LEDON]
+              SUB   R2  GB
+   skipDecr:  ADD   R2  1
+              CMP   R0  0
+              BNE   decrCntLp
+              POP   R2
+              POP   R1
+              POP   R0
+              RTS
 
-                LOAD R0 DELTA
-                STOR R0 [GB+TIMER]
+;  Decrements the cur. led status by step
+   decCurLED: PUSH  R0
+              PUSH  R1
+              LOAD  R0  7
+              ADD   R0  GB
+   decCurLp:  LOAD  R1  [R0+CURLEDS]
+              BLE   skipDecLED
+              SUB   R1  DELTA
+              STOR  R1  [R0+CURLEDS]
+  skipDecLED: SUB   R0  1
+              LOAD  R1  GB
+              SUB   R1  1
+              CMP   R0  R1
+              BNE   decCurLp
+              POP   R1
+              POP   R0
+              RTS
 
-                PULL R0
-                PULL R1
+;  Lights up the leds if needed
+   ledOn:     PUSH  R0
+              PUSH  R1
+              PUSH  R2
+              PUSH  R3
+              PUSH  R4
+              LOAD  R0  7
+              LOAD  R2  %010000000
+              LOAD  R3  0
+              ADD   R0  GB
+   turnLEDLp: LOAD  R1  [R0+CURLEDS]
 
-                ; run for idx 0...7
-display_idx :   ADD         R3      1           ;
-                CMP         R3      8           ;
-                BNE         display             ;
-                LOAD        R3      -1          ;
+              BLE   skipOnLED
+              OR    R3  R2
+  skipOnLED:  SUB   R0  1
+              DIV   R2  2
+              LOAD  R4  GB
+              SUB   R4  1
+              CMP   R0  R4
+              BNE   turnLEDLp
+              STOR  R3  [R5+OUTPUT]
+              POP   R4
+              POP   R3
+              POP   R2
+              POP   R1
+              POP   R0
+              RTS
 
-input_idx :     ADD         R3      1           ;
-                CMP         R3      8           ;
-                BNE         input               ;
-                LOAD        R3      -1          ;
+;  Copy LEDON to CURLEDS
+   cpCurLED:  PUSH  R0
+              PUSH  R4
+              LOAD  R4  7
+              ADD   R4  GB
+   cpLEDLp:   LOAD  R0  [R4+LEDON]
+              STOR  R0  [R4+CURLEDS]
+              SUB   R4  1
+              LOAD  R0  GB
+              SUB   R0  1
+              CMP   R4  R0
+              BNE   cpLEDLp
+              POP   R4
+              POP   R0
+              RTS
 
-                ; loop end
-                LOAD        R4      [R0+INPUT]  ; save input state
-                STOR        R4      [GB+STATE]  ;
-                ADD         R2      1           ;
-                MOD         R2      100         ;
-                ;BRA         loop                ;
-
-                SETI 8
-                RTE
-
-display :       ; calculate data address
-                LOAD        R1      DATA        ;
-                ADD         R1      R3          ;
-
-                CMP         R2      [GB+R1];    ;
-
-                ; load R1 with 1 if R2 < n else load R1 with 0
-                BGE         off                 ;
-                LOAD        R1      1           ;
-                BRA         set                 ;
-    off :       LOAD        R1      0           ;
-
-                ; set output bit
-    set :       PUSH        R3                  ;
-                LOAD        R4      1           ;
-                PUSH        R4
-                PUSH        R1                  ;
-                LOAD        R4      [GB+OUT]    ;
-                PUSH        R4                  ;
-                BRS         bit.set             ;
-                PULL        R4                  ;
-                STOR        R4      [R0+OUTPUT] ;
-                STOR        R4      [GB+OUT]    ;
-
-                ; wrap around 100 and return to "display_idx"
-                BRA         display_idx;        ;
-
-input :         CMP         R3      0           ; display 0 is controlled by the potential meter
-                BEQ         pot                 ;
-
-                STOR        R0      [GB+SUBTRACT]
-                LOAD        R1      %01
-                LOAD        R4      [R0+INPUT]
-                AND         R4      R1
-                CMP         R4      R1
-                BNE         check
-                LOAD        R4      1
-                STOR        R4      [GB+SUBTRACT]
-
-    check :     LOAD        R4      [GB+STATE]  ; arg1 := 'state'
-                PUSH        R4                  ;
-                PUSH        R3                  ; arg0 := 'idx'
-                BRS         input.pressed       ; call input.pressed('idx', 'state')
-                PULL        R4                  ; R4 := return value
-
-                ; reset if button 'idx was pressed
-                CMP         R4      R0          ;
-                BEQ         input_idx           ;
-
-                ; increase data['idx'] by 10 mod 100
-                LOAD        R1      DATA        ;
-                ADD         R1      R3          ;
-
-                LOAD        R4      [GB+SUBTRACT];
-                CMP         R4      R0          ;
-                BEQ         add                 ;
-
-    sub :       LOAD        R4      [GB+R1]     ;
-                SUB         R4      10          ;
-                MOD         R4      100         ;
-                BRA         stor
-
-    add :       LOAD        R4      [GB+R1] ;
-                ADD         R4      10          ;
-                MOD         R4      100         ;
-                BRA         stor
-
-    pot :       PUSH        R0                  ; arg2 := 0
-                LOAD        R4      8           ; arg1 := 8
-                PUSH        R4
-                LOAD        R4      [R0+ADCONVS]; arg0 := 'ADCONVS'
-                PUSH        R4
-                BRS         bit.get             ; call get('ADCONVS', 8, 0)
-                PULL        R4
-
-                ; scale to 100
-                MULS        R4      100
-                DIV         R4      255
-
-    stor :      ; store R4 in data[idx]
-                LOAD        R1      DATA        ;
-                ADD         R1      R3          ;
-                STOR        R4      [GB+R1]     ;
-                BRA         input_idx
 @END
