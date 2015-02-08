@@ -98,17 +98,17 @@
               PUSH  R1
               PUSH  R2
 
-              LOAD  R2  1
-   incrCntLp: DVMD  R0  2
-              CMP   R1  0
-              BEQ   skipIncr
+              LOAD  R2  1 ; Start with LED 1
+   incrCntLp: DVMD  R0  2 ; Shift it to the right
+              CMP   R1  0 ; Check if corresponding button was pressed
+              BEQ   skipIncr ; Skip increment if it was not
               ADD   R2  GB
-              LOAD  R1  [R2+LEDON]
-              ADD   R1  10
-              STOR  R1  [R2+LEDON]
+              LOAD  R1  [R2+LEDON] ; Get current delta for the led
+              ADD   R1  10 ; Increment it by 10
+              STOR  R1  [R2+LEDON] ; Write it
               SUB   R2  GB
-   skipIncr:  ADD   R2  1
-              CMP   R0  0
+   skipIncr:  ADD   R2  1 ; Iterate
+              CMP   R0  0 ; Exit if all leds processed
               BNE   incrCntLp
 
               ; Restore reg values
@@ -119,6 +119,7 @@
 
 ; Decrements all the cntrs if necessary
 ; Input: btn state in R0 - except for btn0
+; Same comments as for incrCntrs except we decrement instead
    decrCntrs: PUSH  R0
               PUSH  R1
               PUSH  R2
@@ -142,17 +143,19 @@
 ;  Decrements the cur. led status by step
    decCurLED: PUSH  R0
               PUSH  R1
-              LOAD  R0  7
+
+              LOAD  R0  7 ; led 7
               ADD   R0  GB
-   decCurLp:  LOAD  R1  [R0+CURLEDS]
-              BLE   skipDecLED
-              SUB   R1  DELTA
-              STOR  R1  [R0+CURLEDS]
-  skipDecLED: SUB   R0  1
+   decCurLp:  LOAD  R1  [R0+CURLEDS] ;  get delta for current led
+              BLE   skipDecLED ; continue if it's 0
+              SUB   R1  DELTA ; decrement it by delta
+              STOR  R1  [R0+CURLEDS] ; store the result
+  skipDecLED: SUB   R0  1 ; Iterate
               LOAD  R1  GB
               SUB   R1  1
               CMP   R0  R1
-              BNE   decCurLp
+              BNE   decCurLp ; Return if R0 == GB-1
+
               POP   R1
               POP   R0
               RTS
@@ -163,21 +166,23 @@
               PUSH  R2
               PUSH  R3
               PUSH  R4
-              LOAD  R0  7
-              LOAD  R2  %010000000
-              LOAD  R3  0
-              ADD   R0  GB
-   turnLEDLp: LOAD  R1  [R0+CURLEDS]
 
-              BLE   skipOnLED
-              OR    R3  R2
+              LOAD  R0  7 ; led 7
+              LOAD  R2  %010000000 ; Mask for 7th button
+              LOAD  R3  0 ; Bitfield for leds we want to light up
+              ADD   R0  GB
+   turnLEDLp: LOAD  R1  [R0+CURLEDS] ; Get current delta
+
+              BLE   skipOnLED ; Do not turn this led on if delta == 0
+              OR    R3  R2 ; Else set corresponding bit in R3
   skipOnLED:  SUB   R0  1
-              DIV   R2  2
+              DIV   R2  2 ; Iterate to next led
               LOAD  R4  GB
               SUB   R4  1
-              CMP   R0  R4
-              BNE   turnLEDLp
-              STOR  R3  [R5+OUTPUT]
+              CMP   R0  R4 ; Check if we processed all leds
+              BNE   turnLEDLp ; Continue if not
+              STOR  R3  [R5+OUTPUT] ; Turn the leds on
+
               POP   R4
               POP   R3
               POP   R2
@@ -188,15 +193,15 @@
 ;  Copy LEDON to CURLEDS
    cpCurLED:  PUSH  R0
               PUSH  R4
-              LOAD  R4  7
+              LOAD  R4  7 ; led 7
               ADD   R4  GB
-   cpLEDLp:   LOAD  R0  [R4+LEDON]
-              STOR  R0  [R4+CURLEDS]
-              SUB   R4  1
+   cpLEDLp:   LOAD  R0  [R4+LEDON] ; Get delta for the led
+              STOR  R0  [R4+CURLEDS] ; Reset the delta
+              SUB   R4  1 ; Proceed to next led
               LOAD  R0  GB
               SUB   R0  1
               CMP   R4  R0
-              BNE   cpLEDLp
+              BNE   cpLEDLp ; Return if we processed all the leds
               POP   R4
               POP   R0
               RTS
