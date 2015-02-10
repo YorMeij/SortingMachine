@@ -19,7 +19,7 @@
 ;      The body of the main program
 ;
    start:
-              ; Interrupt init
+              ; Initialise Interrupt
               LOAD  R0 work ; R0 <= "the relative position of routine work"
               ADD   R0  R5 ; R0 <= "the memory address of routine work"
               LOAD  R1  16 ; R1 <= "address of the Exception Descriptor for TIMER"
@@ -57,7 +57,7 @@
               STOR  R1  [GB+LEDON]    ;  Write it to ledon[0]
               LOAD  R0  [R5+INPUT]
               SUB   R0  [GB+BUTTONS]  ; Compare previous and current buttons states
-              BLE   lightUp             ;  ensure that btn state changed
+              BLE   lightUp             ;  ensure that button state changed
               LOAD  R0  [R5+INPUT]
               LOAD  R4  R0
               AND   R4  %01             ; Test rightmost bit of INPUT
@@ -90,8 +90,8 @@
               SETI 8  ; Reenable interrupt bit
               RTE     ; Return from interrupt
 
-; Increments all the cntrs if necessary
-; Input: btn state in R0 - except for btn0
+; Increments all the counters if necessary
+; Input: button state in R0 - except for btn0
    incrCntrs:
               ; Use local regs
               PUSH  R0
@@ -117,8 +117,8 @@
               POP   R0
               RTS
 
-; Decrements all the cntrs if necessary
-; Input: btn state in R0 - except for btn0
+; Decrements all the counters if necessary
+; Input: button state in R0 - except for btn0
 ; Same comments as for incrCntrs except we decrement instead
    decrCntrs: PUSH  R0
               PUSH  R1
@@ -140,7 +140,7 @@
               POP   R0
               RTS
 
-;  Decrements the cur. led status by step
+;  Decrements the current led status by step
    decCurLED: PUSH  R0
               PUSH  R1
 
