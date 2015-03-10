@@ -11,7 +11,7 @@
    DIGIT       EQU    9                 ;  relative position of the 7-segment display's digit selector
    SEGMENT     EQU    8                 ;  relative position of the 7-segment display's segments
    TIMER       EQU   13                 ;  relative position of timer
-   ADCONVS     EQU    6                 ;  adconvs thing
+   ADCONVS     EQU    6                 ;  adconvs(potmeter) thing
    DELTA       EQU   10                 ;  delay in timer steps  --  step for the leds
 
   begin:      BRA  start                ;  We start at start
@@ -19,7 +19,7 @@
 ;      The body of the main program
 ;
    start:
-              ; Interrupt init
+              ; Initialise Interrupt
               LOAD  R0 work ; R0 <= "the relative position of routine work"
               ADD   R0  R5 ; R0 <= "the memory address of routine work"
               LOAD  R1  16 ; R1 <= "address of the Exception Descriptor for TIMER"
@@ -45,7 +45,7 @@
               LOAD R0 DELTA
               STOR R0 [R5+TIMER]
 
-              ; Use local R0, R1, R4
+              ; store local R0, R1, R4, because we need the space
               PUSH  R0
               PUSH  R1
               PUSH  R4
@@ -57,7 +57,8 @@
               STOR  R1  [GB+LEDON]    ;  Write it to ledon[0]
               LOAD  R0  [R5+INPUT]
               SUB   R0  [GB+BUTTONS]  ; Compare previous and current buttons states
-              BLE   lightUp             ;  ensure that btn state changed
+              BLE   lightUp             ;  ensure that button state changed
+			  
               LOAD  R0  [R5+INPUT]
               LOAD  R4  R0
               AND   R4  %01             ; Test rightmost bit of INPUT
@@ -90,10 +91,10 @@
               SETI 8  ; Reenable interrupt bit
               RTE     ; Return from interrupt
 
-; Increments all the cntrs if necessary
-; Input: btn state in R0 - except for btn0
+; Increments all the counters if necessary
+; Input: button state in R0 - except for btn0
    incrCntrs:
-              ; Use local regs
+              ; Store local regs
               PUSH  R0
               PUSH  R1
               PUSH  R2
@@ -117,31 +118,35 @@
               POP   R0
               RTS
 
-; Decrements all the cntrs if necessary
-; Input: btn state in R0 - except for btn0
+; Decrements all the counters if necessary
+; Input: button state in R0 - except for btn0
 ; Same comments as for incrCntrs except we decrement instead
-   decrCntrs: PUSH  R0
+   decrCntrs: ;store regs
+			  PUSH  R0
               PUSH  R1
               PUSH  R2
-              LOAD  R2  1
-   decrCntLp: DVMD  R0  2
-              CMP   R1  0
-              BEQ   skipDecr
-              ADD   R2  GB
-              LOAD  R1  [R2+LEDON]
-              SUB   R1  10
-              STOR  R1  [R2+LEDON]
-              SUB   R2  GB
-   skipDecr:  ADD   R2  1
-              CMP   R0  0
+			  
+              LOAD  R2  1 ;start with led 1
+   decrCntLp: DVMD  R0  2 ;shift to right
+              CMP   R1  0 ; check if the corresponding button was pressed
+              BEQ   skipDecr ;skip if it wasn't 
+              ADD   R2  GB 
+              LOAD  R1  [R2+LEDON] ; load current delta for the led
+              SUB   R1  10 ; decrement with 10
+              STOR  R1  [R2+LEDON] ; store current delta for this led
+              SUB   R2  GB ; subtract GB giving us a specific led
+   skipDecr:  ADD   R2  1 ; iterate
+              CMP   R0  0 ; but exit if we processed all the leds
               BNE   decrCntLp
+			  
+			  ;restore regs
               POP   R2
               POP   R1
               POP   R0
               RTS
 
-;  Decrements the cur. led status by step
-   decCurLED: PUSH  R0
+;  Decrements the current led status by step
+   decCurLED: PUSH  R0 ; store regs
               PUSH  R1
 
               LOAD  R0  7 ; led 7
@@ -156,12 +161,12 @@
               CMP   R0  R1
               BNE   decCurLp ; Return if R0 == GB-1
 
-              POP   R1
+              POP   R1 ; restore regs
               POP   R0
               RTS
 
 ;  Lights up the leds if needed
-   ledOn:     PUSH  R0
+   ledOn:     PUSH  R0 ; store regs
               PUSH  R1
               PUSH  R2
               PUSH  R3
@@ -183,7 +188,7 @@
               BNE   turnLEDLp ; Continue if not
               STOR  R3  [R5+OUTPUT] ; Turn the leds on
 
-              POP   R4
+              POP   R4 ; restore regs
               POP   R3
               POP   R2
               POP   R1
@@ -191,7 +196,8 @@
               RTS
 
 ;  Copy LEDON to CURLEDS
-   cpCurLED:  PUSH  R0
+; call before turning on the leds
+   cpCurLED:  PUSH  R0 ; store regs
               PUSH  R4
               LOAD  R4  7 ; led 7
               ADD   R4  GB
@@ -202,7 +208,7 @@
               SUB   R0  1
               CMP   R4  R0
               BNE   cpLEDLp ; Return if we processed all the leds
-              POP   R4
+              POP   R4 ; restore regs
               POP   R0
               RTS
 
