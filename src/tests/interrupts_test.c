@@ -1,4 +1,4 @@
-#include "defines.h"
+#include "../defines.h"
 
 static int cs = 0;
 static int delta = 10;
