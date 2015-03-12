@@ -1,6 +1,6 @@
 CC = ../../pp2cc/pp2cc.py
 CPPPATH = clang
-ASM = ../../2IC30/Assembler9.jar
+ASM = ../../../2IC30/Assembler9.jar
 
 all: CompileC Assemble
 

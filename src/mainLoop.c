@@ -34,12 +34,14 @@ void __int_tmrIntHandler(void){
                 state = REST_STATE;
             }
             break;
+
         case REST_STATE:
             if (startStopReleased){
                 state = PUSH_STATE;
                 // fixme: going back to rest state after some time
             }
             break;
+
         case PUSH_STATE:
             if (startStopReleased){
                 state = PUSH_STOP_STATE;
@@ -50,18 +52,16 @@ void __int_tmrIntHandler(void){
                 break;
             }
 
-            switch (color){
-
-                case WHITE_DISK:
-                    state = CONVEY_WHITE_STATE;
-                    break;
-                case BLACK_DISK:
-                    state = CONVEY_BLACK_STATE;
-                    break;
-                default:
-                    break;
+            if (color == DISK_WHITE){
+                state = CONVEY_WHITE_STATE;
+                break;
+            }
+            if (color == DISK_BLACK){
+                state = CONVEY_BLACK_STATE;
+                break;
             }
             break;
+
         case CONVEY_WHITE_STATE:
             if (startStopReleased){
                 state = CONVEY_WHITE_STOP_STATE;
@@ -75,6 +75,8 @@ void __int_tmrIntHandler(void){
                 state = TERMINATION_STATE;
                 break;
             }
+            break;
+
         case CONVEY_BLACK_STATE:
             if (startStopReleased){
                 state = CONVEY_BLACK_STOP_STATE;
@@ -88,6 +90,8 @@ void __int_tmrIntHandler(void){
                 state = TERMINATION_STATE;
                 break;
             }
+            break;
+
         case PUSH_STOP_STATE:
 
             if (whiteDiskDetected || blackDiskDetected || abortReleased){
@@ -95,16 +99,14 @@ void __int_tmrIntHandler(void){
                 break;
             }
 
-            switch (color){
+            if (color == DISK_WHITE){
+                state = CONVEY_WHITE_STOP_STATE;
+                break;
+            }
 
-                case WHITE_DISK:
-                    state = CONVEY_WHITE_STOP_STATE;
-                    break;
-                case BLACK_DISK:
-                    state = CONVEY_BLACK_STOP_STATE;
-                    break;
-                default:
-                    break;
+            if (color == DISK_BLACK){
+                state = CONVEY_BLACK_STOP_STATE;
+                break;
             }
             break;
 
@@ -118,6 +120,7 @@ void __int_tmrIntHandler(void){
                 state = TERMINATION_STATE;
                 break;
             }
+            break;
 
         case CONVEY_BLACK_STOP_STATE:
 
@@ -129,11 +132,15 @@ void __int_tmrIntHandler(void){
                 state = TERMINATION_STATE;
                 break;
             }
+            break;
+
         default:
             break;
     }
+
     motorStep(state);
     lightsStep(state);
+    updateVal();
 
     __seti__(8);
     return;
