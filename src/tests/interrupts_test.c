@@ -28,7 +28,7 @@ void __int_nop(void){
 void main(void){
 
     GETCS(cs);
-    INITINTERRUPT(__int_nop, cs, 2*8);
+    INITINTERRUPT(__int_nop, cs, 16);
     __seti__(8);
 
     while(1){};
