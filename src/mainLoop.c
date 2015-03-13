@@ -148,7 +148,7 @@ void __int_tmrIntHandler(void){
 
 void main(void){
 
-    cs = GETCS(cs);
+    GETCS(cs);
     INITINTERRUPT(__int_tmrIntHandler, cs, 16);
     __seti__(8);
 
