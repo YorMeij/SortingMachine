@@ -17,22 +17,22 @@ void motorStep(int state){
         switch (state){
 
             case PUSH_STATE:
-                *out |= 0x1; // Set motor signal to high
+                *out |= 0x4; // Set motor signal to high
                 break;
             case CONVEY_WHITE_STATE:
-                *out |= 0x2; // H-bridge white high
+                *out |= 0x1; // H-bridge white high
                 break;
             case CONVEY_BLACK_STATE:
-                *out |= 0x4; // H-bridge black high
+                *out |= 0x2; // H-bridge black high
                 break;
             case PUSH_STOP_STATE:
-                *out |= 0x1; // Set motor signal to high
+                *out |= 0x4; // Set motor signal to high
                 break;
             case CONVEY_WHITE_STOP_STATE:
-                *out |= 0x2; // H-bridge white high
+                *out |= 0x1; // H-bridge white high
                 break;
             case CONVEY_BLACK_STOP_STATE:
-                *out |= 0x4; // H-bridge black high
+                *out |= 0x2; // H-bridge black high
                 break;
             default:
                 break;

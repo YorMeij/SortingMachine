@@ -47,8 +47,8 @@ int whiteDetectorStep(void){
 
     int val = *input;
 
-    int whiteDetector = val & 0x8;
-    int whiteDetectorPrev = prevValue & 0x8;
+    int whiteDetector = val & 0x4;
+    int whiteDetectorPrev = prevValue & 0x4;
 
     if (whiteDetectorPrev & ~whiteDetector){
 
