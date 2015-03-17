@@ -3,6 +3,7 @@
 #include "lights.h"
 #include "motor_pwm.h"
 #include "input.h"
+#include "enableLEDs.h"
 
 static int cs = 0;
 static int timerDelta = 10;
@@ -137,6 +138,8 @@ void __int_tmrIntHandler(void){
         default:
             break;
     }
+
+    enable_digit(state, 1);
 
     motorStep(state);
     lightsStep(state);
