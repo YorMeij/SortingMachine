@@ -50,7 +50,7 @@ int whiteDetectorStep(void){
     int whiteDetector = val & 0x4;
     int whiteDetectorPrev = prevValue & 0x4;
 
-    if (whiteDetectorPrev & ~whiteDetector){
+    if (~whiteDetectorPrev & whiteDetector){
 
         return 1;
     }
@@ -66,7 +66,7 @@ int blackDetectorStep(void){
     int blackDetector = val & 0x8;
     int blackDetectorPrev = prevValue & 0x8;
 
-    if (blackDetectorPrev & ~blackDetector){
+    if (~blackDetectorPrev & blackDetector){
 
         return 1;
     }
