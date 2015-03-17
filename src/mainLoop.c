@@ -8,6 +8,7 @@
 static int cs = 0;
 static int timerDelta = 10;
 static int state = REST_STATE;
+static int switchOutput = 0;
 
 void __int_tmrIntHandler(void){
 
@@ -141,8 +142,16 @@ void __int_tmrIntHandler(void){
 
     enable_digit(state, 1);
 
-    motorStep(state);
-    lightsStep(state);
+    if (!switchOutput){
+
+        lightsStep(state);
+        switchOutput = 1;
+    }
+    else{
+        motorStep(state);
+        switchOutput = 0;
+    }
+
     updateVal();
 
     __seti__(8);
