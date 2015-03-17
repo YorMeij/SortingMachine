@@ -3,13 +3,21 @@
 static int thresholdBlack = 250;
 static int thresholdWhite = 180;
 
-void sleep(void){
+void sleep(int steps){
 
-    int i = 0;
-    while (i < 2000){
-        i |= i; // sort of nop
-        i += 1;
-    }
+    // 1 step per 0.1 ms
+
+    int *tmr = TIMER;
+    int tmrVal = *tmr; // Get current timer value
+
+    *tmr = -tmrVal; // *tmr = 0
+    *tmr = steps;
+
+    while (*tmr > 0);
+
+    *tmr = -(*tmr); // Makes sure *tmr == 0
+
+    *tmr = tmrVal; // Restore old timer value
 }
 
 void displayColorDetectorValue(int val){
@@ -17,12 +25,12 @@ void displayColorDetectorValue(int val){
     if (val >= 100){
 
         enable_digit(val / 100, 6);
-        sleep();
+        sleep(100);
     }
     if (val >= 10){
 
         enable_digit((val % 100) / 10, 5);
-        sleep();
+        sleep(100);
     }
     enable_digit(val % 10, 4);
 }
