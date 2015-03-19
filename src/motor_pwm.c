@@ -1,7 +1,7 @@
 #include "motor_pwm.h"
 
 static int motorCnt = 0;
-static int motorCntThreshold = 90;
+static int motorCntThreshold = 95;
 static int motorMax = 100;
 
 void motorStep(int state){

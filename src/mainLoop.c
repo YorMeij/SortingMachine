@@ -9,6 +9,29 @@ static int cs = 0;
 static int timerDelta = 10;
 static int state = REST_STATE;
 static int switchOutput = 0;
+static int displaySwitch = 0; // 0 is leftmost, 5 is rightmost
+
+void displayAdconvsVal(void){
+
+    int *adconvs = ADCONVS;
+    int val = *adconvs & 0xff00;
+    val = val >> 8;
+
+    switch (displaySwitch){
+
+        case 5:
+            enable_digit(val / 100, displaySwitch + 1);
+            break;
+        case 4:
+            enable_digit((val % 100) / 10, displaySwitch + 1);
+            break;
+        case 3:
+            enable_digit(val % 10, displaySwitch + 1);
+            break;
+        default:
+            break;
+    }
+}
 
 void __int_tmrIntHandler(void){
 
@@ -84,7 +107,7 @@ void __int_tmrIntHandler(void){
                 state = CONVEY_BLACK_STOP_STATE;
                 break;
             }
-            if (whiteDiskDetected){
+            if (blackDiskDetected){
                 state = PUSH_STATE;
                 break;
             }
@@ -140,7 +163,15 @@ void __int_tmrIntHandler(void){
             break;
     }
 
-    enable_digit(state, 1);
+    int* adconvs = ADCONVS;
+
+    if (displaySwitch == 0)
+        enable_digit(state, displaySwitch + 1);
+
+    displayAdconvsVal();
+
+    displaySwitch += 1;
+    displaySwitch %= 6;
 
     if (!switchOutput){
 
