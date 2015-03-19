@@ -2,7 +2,7 @@
 
 static int thresholdBlack = 250;
 static int thresholdWhite = 220;
-static int thresholdCounts = 1000;
+static int thresholdCounts = 500;
 static int countsBlack = 0;
 static int countsWhite = 0;
 

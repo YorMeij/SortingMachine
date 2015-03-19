@@ -10,6 +10,8 @@ static int timerDelta = 10;
 static int state = REST_STATE;
 static int switchOutput = 0;
 static int displaySwitch = 0; // 0 is leftmost, 5 is rightmost
+static int pushStateCnt = 0;
+static int pushStateThreshold = 10000;
 
 void displayAdconvsVal(void){
 
@@ -63,26 +65,36 @@ void __int_tmrIntHandler(void){
         case REST_STATE:
             if (startStopReleased){
                 state = PUSH_STATE;
-                // fixme: going back to rest state after some time
             }
             break;
 
         case PUSH_STATE:
+            pushStateCnt += 1;
+
+            if (pushStateCnt > pushStateThreshold){
+                state = REST_STATE;
+                pushStateCnt = 0;
+                break;
+            }
             if (startStopReleased){
                 state = PUSH_STOP_STATE;
+                pushStateCnt = 0;
                 break;
             }
             if (whiteDiskDetected || blackDiskDetected || abortReleased){
                 state = TERMINATION_STATE;
+                pushStateCnt = 0;
                 break;
             }
 
             if (color == DISK_WHITE){
                 state = CONVEY_WHITE_STATE;
+                pushStateCnt = 0;
                 break;
             }
             if (color == DISK_BLACK){
                 state = CONVEY_BLACK_STATE;
+                pushStateCnt = 0;
                 break;
             }
             break;
