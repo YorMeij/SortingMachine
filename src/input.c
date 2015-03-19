@@ -4,10 +4,16 @@ static int prevValue = 0;
 
 void updateVal(void){
 
+    /**
+     * Re-read inputs
+     */
+
     int *input = INPUT;
 
     prevValue = *input;
 }
+
+// The rest of the functions return 1 if corresponding button was pressed and released
 
 int startstopStep(void){
 

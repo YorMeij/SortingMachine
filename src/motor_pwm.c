@@ -1,17 +1,22 @@
 #include "motor_pwm.h"
 
+// We need this for PWM
 static int motorCnt = 0;
 static int motorCntThreshold = 95;
 static int motorMax = 100;
 
 void motorStep(int state){
 
+    /**
+     * Sets corresponding motor outputs high depending on state.
+     */
+
     motorCnt += 10;
     motorCnt %= motorMax;
 
     int *out = OUTPUT;
 
-    if (motorCnt < motorCntThreshold){
+    if (motorCnt < motorCntThreshold){ // PWM does not let us do things yet
 
         switch (state){
 
