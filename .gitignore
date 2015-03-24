@@ -1,4 +1,4 @@
 .DS_Store
 *.hex
-src/*.asm
+#src/*.asm
 src/tests/*.asm
