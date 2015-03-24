@@ -11,7 +11,7 @@ static int state = REST_STATE; // Default state
 static int switchOutput = 0; // Determines what current output is
 static int displaySwitch = 0; // Determines what digit to display. 0 is leftmost, 5 is rightmost LED
 static int pushStateCnt = 0; // Count how many cycles we spent in push state
-static int pushStateThreshold = 10000; // Push state cycles threshold value
+static int pushStateThreshold = 5000; // Push state cycles threshold value
 
 void displayAdconvsVal(void){
 
@@ -140,6 +140,14 @@ void __int_tmrIntHandler(void){
             break;
 
         case PUSH_STOP_STATE:
+
+            pushStateCnt += 1;
+
+            if (pushStateCnt > pushStateThreshold){
+                state = REST_STATE;
+                pushStateCnt = 0;
+                break;
+            }
 
             if (whiteDiskDetected || blackDiskDetected || abortReleased){
                 state = TERMINATION_STATE;
